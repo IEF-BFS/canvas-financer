@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Canvas financiero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column like the dice tool, a wider Business Model Canvas grid on step 1, step pills on top. */
+:root{
+  --bg:#f8f7f2; --surface:#ffffff; --ink:#161a16; --muted:#5d6259; --line:#dddcd2; --soft:#efeee6;
+  --lime:#dcf57c; --lime-ink:#161a16; --btn-bg:#161a16; --btn-fg:#ffffff;
+  --good:#2e7a33; --good-bg:#e5f3df; --warn:#9a5200; --warn-bg:#fbefd9; --bad:#b3261e; --bad-bg:#fbe3e0;
+  --equity:#161a16; --debt:#9cb83a;
+  --display:"Inter Tight","Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131512; --surface:#1c1f1a; --ink:#f0f1ea; --muted:#a8ada0; --line:#343830; --soft:#22251f;
+  --lime:#d6f26b; --lime-ink:#161a16; --btn-bg:#d6f26b; --btn-fg:#161a16;
+  --good:#8fd18f; --good-bg:#1f3320; --warn:#f0b866; --warn-bg:#3a2c14; --bad:#f19a92; --bad-bg:#3d1d1a;
+  --equity:#f0f1ea; --debt:#9cb83a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131512; --surface:#1c1f1a; --ink:#f0f1ea; --muted:#a8ada0; --line:#343830; --soft:#22251f;
+  --lime:#d6f26b; --lime-ink:#161a16; --btn-bg:#d6f26b; --btn-fg:#161a16;
+  --good:#8fd18f; --good-bg:#1f3320; --warn:#f0b866; --warn-bg:#3a2c14; --bad:#f19a92; --bad-bg:#3d1d1a;
+  --equity:#f0f1ea; --debt:#9cb83a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap.wide{max-width:1040px}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:2px;font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.logo .big{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:18px;line-height:1;position:relative;transform:translateY(-6px)}
+.logo .big small{position:absolute;bottom:8px;font-size:5px;letter-spacing:.08em;font-weight:700}
+.logo .dot{width:7px;height:7px;border-radius:50%;background:var(--ink);align-self:flex-end;margin-bottom:2px;margin-left:-6px}
+.phase{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:right}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,8vw,68px);line-height:1;letter-spacing:-.035em;margin:30px 0 8px;text-wrap:balance}
+.lead{color:var(--muted);font-size:18px;margin:0 0 22px}
+h2{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0 0 4px;text-wrap:balance}
+h3{font-size:17px;font-weight:700;margin:0 0 8px}
+.hint{color:var(--muted);margin:0 0 18px}
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px;padding:0;list-style:none}
+.steps button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+.steps button[aria-current="step"]{background:var(--lime);color:var(--lime-ink);border-color:var(--ink)}
+.steps button:disabled{opacity:.45;cursor:not-allowed}
+.steps button .n{font-variant-numeric:tabular-nums;margin-right:6px;opacity:.6}
+label.lbl{display:block;font-weight:700;margin-bottom:6px}
+textarea,input[type=text],input[type=number],select{width:100%;font:500 16px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+textarea{resize:vertical;min-height:96px;line-height:1.4}
+input[type=number]{font-variant-numeric:tabular-nums}
+textarea:focus,input:focus,select:focus,button:focus-visible,a:focus-visible{outline:3px solid var(--lime);outline-offset:1px;border-color:var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:800 17px var(--display);border-radius:var(--r);padding:16px 22px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg);width:100%}
+.btn.small{font:700 14px var(--body);padding:8px 12px;border-radius:10px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font:inherit;cursor:pointer}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.actions{display:grid;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.actions .row{justify-content:space-between}
+.note{border-radius:var(--r);padding:12px 14px;font-size:15px}
+.note.warn{background:var(--warn-bg);color:var(--warn)}
+.note.bad{background:var(--bad-bg);color:var(--bad)}
+.note.good{background:var(--good-bg);color:var(--good)}
+.note.ex{background:var(--lime);color:var(--lime-ink);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.note.ex .link{color:var(--lime-ink)}
+
+/* Business Model Canvas */
+.bmc{display:grid;gap:10px;grid-template-columns:1fr}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.box label{font-weight:700;font-size:15px}
+.box .q{font-size:13px;color:var(--muted);margin-top:-4px}
+.box textarea{border-radius:10px;min-height:110px;flex:1;font-size:15px;padding:10px}
+.box.filled{border-color:var(--ink)}
+.box.locked{background:var(--soft);border-style:dashed;color:var(--muted)}
+.box.locked strong{color:var(--ink)}
+@media (min-width:820px){
+  .bmc{grid-template-columns:repeat(10,1fr);grid-template-areas:
+    "so so ac ac pr pr re re se se"
+    "so so rc rc pr pr ca ca se se"
+    "co co co co co in in in in in"}
+  .b-socios{grid-area:so}.b-actividades{grid-area:ac}.b-recursos{grid-area:rc}.b-propuesta{grid-area:pr}
+  .b-relaciones{grid-area:re}.b-canales{grid-area:ca}.b-segmentos{grid-area:se}.b-costes{grid-area:co}.b-ingresos{grid-area:in}
+}
+
+/* Items */
+.cols{display:grid;gap:20px;grid-template-columns:1fr}
+@media (min-width:720px){.cols{grid-template-columns:1fr 1fr}}
+.col{min-width:0;display:flex;flex-direction:column;gap:10px}
+.col-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.chip{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:3px 9px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.chip.in{background:var(--good-bg);color:var(--good)}
+.chip.out{background:var(--bad-bg);color:var(--bad)}
+.chip.eq{background:var(--ink);color:var(--bg)}
+.chip.debt{background:var(--lime);color:var(--lime-ink)}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:8px}
+.item.sugerido{border-style:dashed;border-color:var(--muted)}
+.item.aceptado{border-color:var(--ink)}
+.item.descartado{opacity:.5}
+.item.descartado input{text-decoration:line-through}
+.item .top{display:flex;gap:8px;align-items:center}
+.item .top input{flex:1;min-width:0;padding:8px 10px;border-radius:10px;font-weight:600}
+.item .meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{font:700 13px var(--body);padding:6px 10px;border:0;background:var(--surface);color:var(--ink);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"].ok{background:var(--lime);color:var(--lime-ink)}
+.seg button[aria-pressed="true"].no{background:var(--ink);color:var(--bg)}
+.add{display:grid;gap:8px;grid-template-columns:1fr auto;background:var(--soft);border-radius:var(--r);padding:10px}
+.add input,.add select{padding:9px 10px;border-radius:10px;font-size:15px}
+.add select{grid-column:1/2}
+
+/* Quantify */
+.q-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.q-item .head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.q-item .head strong{font-size:16px}
+.q-item .yr{font-variant-numeric:tabular-nums;font-weight:700}
+.fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.fields label{font-size:13px;font-weight:600;color:var(--muted);display:grid;gap:4px}
+.fields input,.fields select{padding:9px 10px;border-radius:10px;font-size:15px}
+.totals{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{min-width:0}
+.kpi span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font-family:var(--display);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.neg{color:var(--bad)} .pos{color:var(--good)}
+
+/* Investment */
+.need{background:var(--lime);color:var(--lime-ink);border-radius:20px;padding:22px;display:grid;gap:4px;border:1px solid var(--ink)}
+.need span{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px}
+.need b{font-family:var(--display);font-weight:900;font-size:clamp(44px,9vw,72px);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.breakdown{display:grid;gap:0;margin:18px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.breakdown div{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.breakdown div:first-child{border-top:0}
+.breakdown div b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.breakdown div small{display:block;color:var(--muted);font-size:13px}
+.breakdown .tot{background:var(--soft);font-weight:800}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.chart text{fill:var(--muted);font:12px var(--body)}
+.controls{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:18px 0}
+.check{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--ink);border-radius:var(--r);padding:14px;font-weight:600;cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--ink);flex:none;margin-top:1px}
+input[type=range]{width:100%;accent-color:var(--ink)}
+
+/* Financing */
+.mix{display:flex;height:22px;border-radius:999px;overflow:hidden;border:1px solid var(--ink);margin:10px 0 6px;background:var(--soft)}
+.mix i{display:block;height:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.legend b{color:var(--ink);font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.src{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.src.ok{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.src.off{opacity:.5}
+.src .head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.src .head strong{font-size:17px}
+.src p{margin:0;color:var(--muted);font-size:14px}
+.src .amt{font-family:var(--display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums}
+.list{display:grid;gap:10px}
+.ftotal{background:var(--surface);border:1px solid var(--ink);border-radius:var(--r);overflow:hidden}
+.ftrow{display:grid;grid-template-columns:1fr auto 70px;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.ftrow:first-child{border-top:0}
+.ftrow b{text-align:right;white-space:nowrap}
+.ftrow.sum{background:var(--soft);font-weight:800}
+.ftmsg{padding:12px 14px;font-weight:600}
+.ftotal.ok .ftmsg{background:var(--good-bg);color:var(--good)}
+.ftotal.falta .ftmsg{background:var(--warn-bg);color:var(--warn)}
+.ftotal.sobra .ftmsg{background:var(--bad-bg);color:var(--bad)}
+.note.info{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+.growth{background:var(--lime);color:var(--lime-ink);border:1px solid var(--ink);border-radius:var(--r);padding:14px;display:grid;gap:10px;margin-top:22px}
+.growth .hint,.growth .fields label{color:var(--lime-ink)}
+.growth input{border-color:var(--ink);background:#fff;color:#161a16}
+.yrs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.yrs span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.yrs b{font-family:var(--display);font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.cf table{min-width:0}
+@media (max-width:560px){.cf table{font-size:12.5px}.cf td,.cf th{padding:7px 3px}.cf td:first-child{min-width:110px}}
+.cf tr.sub td{font-weight:700;background:var(--soft)}
+.cf tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+.cf tr.muted td{color:var(--muted)}
+details{border-top:1px solid var(--line);padding:14px 0}
+details summary{font-weight:700;cursor:pointer}
+.sum-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
+.card span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card b{font-family:var(--display);font-weight:800;font-size:26px;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;margin-bottom:16px}
+textarea.copy{font:13px ui-monospace,Menlo,Consolas,monospace;min-height:200px}
+footer{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion:no-preference){.panel{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+
+<div class="wrap" id="wrap">
+  <header class="top">
+    <a class="logo" href="#" aria-label="Dream Big Challenge">DREAM<span class="big">BIG<small>CHALLENGE</small></span><span class="dot"></span></a>
+    <div class="phase">Fase · Modelo financiero</div>
+  </header>
+  <h1>Del Canvas a los números</h1>
+  <p class="lead">Convertid vuestro modelo de negocio en ingresos, gastos, inversión y un plan de financiación.</p>
+  <ol class="steps" id="steps" aria-label="Pasos"></ol>
+  <main id="app" class="panel"></main>
+  <footer>Herramienta orientativa para la hackathon. Los importes sugeridos son ejemplos para empezar: cambiadlos por vuestras estimaciones.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const BOXES=[
+  ["socios","Socios clave","¿Quién nos ayuda? Proveedores, alianzas…"],
+  ["actividades","Actividades clave","¿Qué tenemos que hacer muy bien?"],
+  ["recursos","Recursos clave","¿Qué necesitamos tener? Personas, tecnología, local…"],
+  ["propuesta","Propuesta de valor","¿Qué problema resolvemos y qué ofrecemos?"],
+  ["relaciones","Relación con clientes","¿Cómo los captamos y fidelizamos?"],
+  ["canales","Canales","¿Cómo les llegamos y les vendemos?"],
+  ["segmentos","Segmentos de clientes","¿Para quién creamos valor?"]
+];
+const BOXNAME=Object.fromEntries(BOXES.map(b=>[b[0],b[1]]));
+BOXNAME.manual="Añadido por el equipo";
+const STEPS=["Canvas","Identificar","Cuantificar","Inversión","Financiación","Resumen"];
+const EXAMPLE={
+  socios:"Comercios de barrio (panaderías, fruterías, bares), asociación de comerciantes, ayuntamiento",
+  actividades:"Desarrollo y mantenimiento de la app, captación de comercios, marketing en redes sociales",
+  recursos:"Plataforma digital (app), equipo de 3 fundadores, red de comercios adheridos",
+  propuesta:"Packs sorpresa con la comida que sobra al final del día a un tercio de su precio. Menos desperdicio alimentario y ahorro para jóvenes. Cobramos una comisión por cada pack vendido.",
+  relaciones:"Comunidad en Instagram y TikTok, notificaciones en la app, programa de puntos",
+  canales:"App móvil, redes sociales, carteles en los comercios",
+  segmentos:"Estudiantes y jóvenes de 18 a 30 años con poco presupuesto; comercios que quieren reducir desperdicio"
+};
+
+/* Suggestion rules: keyword → income or cost item with orientative default values */
+const RULES=[
+  {re:/suscrip|mensualidad|cuota|premium|freemium|membres/,k:"ingreso",n:"Suscripciones",s:"propuesta",q:{precio:9.9,unidades:50,crec:8,inicio:1}},
+  {re:/comision|marketplace|intermedi|conecta/,k:"ingreso",n:"Comisiones por venta",s:"propuesta",q:{precio:1.5,unidades:1500,crec:8,inicio:2}},
+  {re:/publicidad|anuncio|patrocin/,k:"ingreso",n:"Publicidad y patrocinios",s:"canales",q:{precio:300,unidades:1,crec:5,inicio:4}},
+  {re:/taller|curso|formaci|consultor|asesor|clase/,k:"ingreso",n:"Talleres y servicios",s:"propuesta",q:{precio:120,unidades:6,crec:5,inicio:1}},
+  {re:/empresas|b2b|colegio|escuela|ayuntamiento|hospital|institucion|administraci/,k:"ingreso",n:"Contratos con empresas e instituciones",s:"segmentos",q:{precio:900,unidades:1,crec:6,inicio:3}},
+  {re:/alquiler de |alquilamos|renting|pago por uso/,k:"ingreso",n:"Alquiler o pago por uso",s:"propuesta",q:{precio:15,unidades:100,crec:6,inicio:1}},
+  {re:/\bapp\b|aplicaci|plataforma|software|web|digital/,k:"gasto",n:"Desarrollo de la app o plataforma",s:"recursos",q:{tipo:"inicial",importe:15000}},
+  {re:/\bapp\b|aplicaci|plataforma|software|web|digital/,k:"gasto",n:"Hosting, dominios y licencias",s:"recursos",q:{tipo:"fijo",importe:150}},
+  {re:/tienda fisica|local|nave|oficina|taller propio/,k:"gasto",n:"Acondicionamiento del local",s:"recursos",q:{tipo:"inicial",importe:20000}},
+  {re:/tienda fisica|local|nave|oficina|taller propio/,k:"gasto",n:"Alquiler del local",s:"recursos",q:{tipo:"fijo",importe:1200}},
+  {re:/fabrica|produc|material|stock|inventario|materia prima|ingrediente/,k:"gasto",n:"Materia prima y producción",s:"actividades",q:{tipo:"variable",pct:35}},
+  {re:/maquin|equipamiento|impresora 3d|herramienta/,k:"gasto",n:"Maquinaria y equipos",s:"recursos",q:{tipo:"inicial",importe:8000}},
+  {re:/envio|logistic|reparto|distribuc|transporte/,k:"gasto",n:"Logística y envíos",s:"canales",q:{tipo:"variable",pct:8}},
+  {re:/redes sociales|instagram|tiktok|marketing|influencer|publicidad/,k:"gasto",n:"Marketing y captación",s:"canales",q:{tipo:"fijo",importe:600}},
+  {re:/empleado|contrat|tecnico|personal|plantilla/,k:"gasto",n:"Personal contratado",s:"recursos",q:{tipo:"fijo",importe:2200}},
+  {re:/proveedor|alianza|partner|comercios|socio/,k:"gasto",n:"Comisiones o pagos a socios",s:"socios",q:{tipo:"variable",pct:5}},
+  {re:/pasarela|pago online|tarjeta|stripe|bizum/,k:"gasto",n:"Comisiones de pago",s:"canales",q:{tipo:"variable",pct:2}},
+  {re:/marca|patente|licencia/,k:"gasto",n:"Registro de marca y patentes",s:"recursos",q:{tipo:"inicial",importe:1500}},
+  {re:/vehicul|furgoneta|moto|bici/,k:"gasto",n:"Vehículos",s:"recursos",q:{tipo:"inicial",importe:12000}},
+  {re:/puntos|fideliza|descuento|regalo/,k:"gasto",n:"Programa de fidelización",s:"relaciones",q:{tipo:"variable",pct:3}}
+];
+const BASE=[
+  {k:"ingreso",n:"Ventas del producto o servicio principal",s:"propuesta",q:{precio:20,unidades:100,crec:6,inicio:1},onlyIfNoIncome:true},
+  {k:"gasto",n:"Constitución de la empresa y trámites",s:"actividades",q:{tipo:"inicial",importe:800}},
+  {k:"gasto",n:"Sueldos del equipo fundador",s:"recursos",q:{tipo:"fijo",importe:3000}},
+  {k:"gasto",n:"Gestoría, seguros y bancos",s:"actividades",q:{tipo:"fijo",importe:200}},
+  {k:"gasto",n:"Equipos informáticos y mobiliario",s:"recursos",q:{tipo:"inicial",importe:3000}},
+  {k:"gasto",n:"Marketing y captación",s:"canales",q:{tipo:"fijo",importe:400}}
+];
+
+/* Financing catalogue */
+const SOURCES={
+  fundadores:{n:"Aportación de los fundadores",t:"propio",d:"Ahorros del equipo. Da confianza al resto de financiadores."},
+  fff:{n:"Familia y amigos",t:"propio",d:"Entrada de capital de personas cercanas (family, friends and fools)."},
+  subvencion:{n:"Subvenciones y premios",t:"propio",d:"Ayudas públicas, premios de emprendimiento o impacto social. No se devuelven."},
+  crowd:{n:"Crowdfunding",t:"propio",d:"Campaña de recompensa o de inversión colectiva. También valida el mercado."},
+  angels:{n:"Business angels",t:"propio",d:"Inversores privados que entran en el capital y aportan experiencia y contactos."},
+  vc:{n:"Capital riesgo o aceleradora",t:"propio",d:"Fondos que invierten a cambio de participación en proyectos escalables."},
+  micro:{n:"Microcrédito",t:"ajeno",d:"Préstamo pequeño para emprendedores, a menudo sin aval. Habitualmente hasta 25.000 €.",rate:6,years:5},
+  participativo:{n:"Préstamo participativo (ENISA)",t:"ajeno",d:"Préstamo para startups (por ejemplo, ENISA) con interés ligado a resultados y sin avales.",rate:4,years:7},
+  banco:{n:"Préstamo bancario (líneas ICO)",t:"ajeno",d:"Préstamo a plazo, con o sin línea ICO. Suele pedir garantías y un plan de negocio.",rate:6.5,years:5},
+  leasing:{n:"Leasing o renting de equipos",t:"ajeno",d:"Financia maquinaria, vehículos o equipos pagando una cuota mensual.",rate:5.5,years:4}
+};
+
+const fmt=new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0,useGrouping:"always"});
+const eur=v=>fmt.format(Math.round(v||0));
+const num=v=>{const x=parseFloat(String(v).replace(",","."));return isFinite(x)?x:0};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+let uid=0;const nid=p=>p+(++uid)+Math.random().toString(36).slice(2,6);
+
+const KEY="dbc-canvas-financiero-v1";
+function fresh(example){
+  return {step:0,example:!!example,canvas:example?{...EXAMPLE}:Object.fromEntries(BOXES.map(b=>[b[0],""])),
+    items:[],params:{meses:36,colchon:3,g2:40,g3:25,gf:3},reviewed:false,fin:[],finNeed:0};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){S=null}
+if(!S||!S.canvas){S=fresh(true)}
+S.params={colchon:3,g2:40,g3:25,gf:3,...S.params,meses:36};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ---------- Model ---------- */
+const sig=()=>JSON.stringify(BOXES.map(([k])=>norm(S.canvas[k]).trim()));
+function suggest(){
+  /* Rebuild suggestions from the current Canvas. Items the team added by hand stay;
+     automatic items stay (with their status and figures) only if the Canvas still produces them. */
+  const isUser=i=>i.user||i.s==="manual";
+  const prev=new Map(S.items.filter(i=>!isUser(i)).map(i=>[norm(i.orig||i.n),i]));
+  const out=S.items.filter(isUser);
+  const have=new Set(out.map(i=>norm(i.n)));
+  const add=(r,box)=>{const key=norm(r.n);if(have.has(key))return;have.add(key);
+    const old=prev.get(key);
+    out.push(old?{...old,s:box||r.s,orig:r.n}:{id:nid("i"),k:r.k,n:r.n,orig:r.n,s:box||r.s,status:"sugerido",q:{...r.q}})};
+  for(const r of RULES){
+    for(const [key] of BOXES){ if(r.re.test(norm(S.canvas[key]))){add(r,key);break;} }
+  }
+  for(const b of BASE){
+    if(b.onlyIfNoIncome&&have.has(norm("Comisiones por venta")))continue;
+    add(b);
+  }
+  S.items=out;S.sig=sig();S.reviewed=false;S.fin=[];
+}
+const active=k=>S.items.filter(i=>i.status==="aceptado"&&(!k||i.k===k));
+function revenueAt(i,m){const q=i.q;const st=Math.max(1,Math.round(num(q.inicio)||1));if(m<st)return 0;
+  return num(q.precio)*num(q.unidades)*Math.pow(1+num(q.crec)/100,m-st)}
+function model(){
+  const M=S.params.meses;const inc=active("ingreso"),gas=active("gasto");
+  const inicial=gas.filter(g=>g.q.tipo==="inicial").reduce((a,g)=>a+num(g.q.importe),0);
+  const fijo=gas.filter(g=>g.q.tipo==="fijo").reduce((a,g)=>a+num(g.q.importe),0);
+  const varPct=gas.filter(g=>g.q.tipo==="variable").reduce((a,g)=>a+num(g.q.pct),0)/100;
+  /* Year 1: month by month from each income line. Years 2 and 3: the team's growth forecast on the previous year, spread evenly by month. */
+  let R1=0;for(let m=1;m<=12;m++)R1+=inc.reduce((a,i)=>a+revenueAt(i,m),0);
+  const R2=R1*(1+num(S.params.g2)/100),R3=R2*(1+num(S.params.g3)/100);
+  const months=[];let cum=0,minCum=0,minAt=0,be=null;
+  for(let m=1;m<=M;m++){
+    const y=Math.ceil(m/12);
+    const rev=y===1?inc.reduce((a,i)=>a+revenueAt(i,m),0):(y===2?R2:R3)/12;
+    const cost=fijo*Math.pow(1+num(S.params.gf)/100,y-1)+rev*varPct;const res=rev-cost;cum+=res;
+    if(cum<minCum){minCum=cum;minAt=m}
+    if(be===null&&res>=0&&rev>0)be=m;
+    months.push({m,rev,cost,res,cum});
+  }
+  const deficit=-minCum;const colchon=S.params.colchon*fijo;
+  const yr=(a,b)=>months.slice(a,b).reduce((x,o)=>({rev:x.rev+o.rev,cost:x.cost+o.cost,fix:x.fix+(o.cost-o.rev*varPct),vr:x.vr+o.rev*varPct}),{rev:0,cost:0,fix:0,vr:0});
+  return {inicial,fijo,varPct,months,deficit,minAt,be,colchon,need:inicial+deficit+colchon,y1:yr(0,12),years:[yr(0,12),yr(12,24),yr(24,36)],last:months.slice(-12)};
+}
+function cuota(P,rate,years){const n=Math.max(1,Math.round(num(years)*12));const r=num(rate)/1200;
+  if(P<=0)return 0;return r===0?P/n:P*r/(1-Math.pow(1+r,-n))}
+function propose(M){
+  const N=M.need;const txt=norm(Object.values(S.canvas).join(" "));
+  const scalable=/\bapp\b|plataforma|software|digital|tecnolog|escala|internacional/.test(txt);
+  const social=/social|impacto|sostenib|desperdicio|inclusi|medio ambiente|circular|ods/.test(txt);
+  const equip=active("gasto").filter(g=>g.q.tipo==="inicial"&&/maquin|equipo|vehicul|furgoneta/.test(norm(g.n))).reduce((a,g)=>a+num(g.q.importe),0);
+  let mix;
+  if(N<=25000) mix={fundadores:30,fff:20,micro:50};
+  else if(N<=150000) mix=scalable?{fundadores:15,fff:10,angels:25,participativo:25,banco:25}:{fundadores:20,fff:10,participativo:30,banco:40};
+  else mix=scalable?{fundadores:5,angels:20,vc:35,participativo:20,banco:20}:{fundadores:10,angels:15,participativo:25,banco:50};
+  const take=(from,to,p)=>{if(mix[from]==null)return;const v=Math.min(p,mix[from]);mix[from]-=v;mix[to]=(mix[to]||0)+v};
+  const debtKey=mix.banco!=null?"banco":"micro";
+  if(social){take(debtKey,"subvencion",10);}
+  if(N>40000&&!scalable)take(mix.fff!=null?"fff":"fundadores","crowd",5);
+  if(equip>0.2*M.inicial&&equip>5000)take(debtKey,"leasing",Math.min(20,Math.round(equip/N*100)));
+  S.fin=Object.entries(mix).filter(([,p])=>p>0).map(([key,p])=>({id:nid("f"),key,pct:p,status:"propuesta",rate:SOURCES[key].rate||0,years:SOURCES[key].years||0}));
+  S.finNeed=Math.round(N);
+}
+
+/* ---------- Rendering ---------- */
+const app=document.getElementById("app");
+function canGo(i){
+  if(i<=0)return true;
+  if(i>=1&&!canvasDone())return false;
+  if(i>=2&&S.sig!==sig())return false;
+  if(i>=2&&(S.items.length===0||S.items.some(x=>x.status==="sugerido")))return false;
+  if(i>=3&&active().length===0)return false;
+  if(i>=4&&!S.reviewed)return false;
+  if(i>=5&&!finDone())return false;
+  return true;
+}
+const canvasDone=()=>BOXES.every(([k])=>S.canvas[k].trim().length>0);
+function finDone(){const l=S.fin.filter(f=>f.status!=="descartada");if(!l.length)return false;
+  const sum=l.reduce((a,f)=>a+num(f.pct),0);return Math.abs(sum-100)<0.5&&l.every(f=>f.status==="validada")}
+function go(i){if(!canGo(i))return;
+  if(i>=1&&S.sig!==sig())suggest();
+  if(i===4){const M=model();if(!S.fin.length||Math.abs(S.finNeed-Math.round(M.need))>1)propose(M)}
+  S.step=i;save();render();window.scrollTo({top:document.getElementById("steps").offsetTop-10,behavior:"smooth"});
+}
+function renderSteps(){
+  document.getElementById("steps").innerHTML=STEPS.map((s,i)=>`<li><button type="button" data-go="${i}" ${i===S.step?'aria-current="step"':""} ${canGo(i)?"":"disabled"}><span class="n">${i+1}</span>${s}</button></li>`).join("");
+}
+function render(){
+  document.getElementById("wrap").classList.toggle("wide",S.step===0);
+  renderSteps();
+  app.innerHTML=[vCanvas,vIdentify,vQuantify,vInvest,vFinance,vSummary][S.step]();
+  app.classList.remove("panel");void app.offsetWidth;app.classList.add("panel");
+}
+
+function vCanvas(){
+  const missing=BOXES.filter(([k])=>!S.canvas[k].trim()).map(b=>b[1]);
+  return `
+  <h2>Vuestro Canvas</h2>
+  <p class="hint">Copiad aquí las 7 casillas superiores del Business Model Canvas. A partir de ellas os propondremos ingresos y gastos.</p>
+  ${S.example?`<div class="note ex" style="margin-bottom:14px"><span><b>Ejemplo cargado:</b> una app de packs de comida sobrante. Sustituidlo por vuestro proyecto.</span><button class="link" data-act="clear">Vaciar el Canvas</button></div>`:""}
+  <div class="bmc">
+    ${BOXES.map(([k,n,q])=>`<div class="box b-${k} ${S.canvas[k].trim()?"filled":""}"><label for="cv-${k}">${n}</label><div class="q">${q}</div><textarea id="cv-${k}" data-cv="${k}" placeholder="Escribid aquí…">${esc(S.canvas[k])}</textarea></div>`).join("")}
+    <div class="box locked b-costes"><strong>Estructura de costes</strong>La completaréis en los pasos 2 y 3.</div>
+    <div class="box locked b-ingresos"><strong>Fuentes de ingresos</strong>La completaréis en los pasos 2 y 3.</div>
+  </div>
+  <div class="actions">
+    ${missing.length?`<div class="note warn" id="cv-missing">Falta completar: ${missing.join(", ")}.</div>`:`<div id="cv-missing" hidden></div>`}
+    <button class="btn primary" data-go="1" ${canvasDone()?"":"disabled"} id="cv-next">Identificar ingresos y gastos ↗</button>
+    ${S.example?"":`<button class="link" data-act="example">Probar con un Canvas de ejemplo</button>`}
+  </div>`;
+}
+
+function itemCard(i){
+  return `<div class="item ${i.status}" data-id="${i.id}">
+    <div class="top"><input type="text" id="n-${i.id}" data-name="${i.id}" value="${esc(i.n)}" aria-label="Nombre"></div>
+    <div class="meta"><span>${i.status==="sugerido"?"Sugerido · ":""}De: ${esc(BOXNAME[i.s]||i.s)}</span>
+      <span class="seg"><button class="ok" data-st="aceptado" aria-pressed="${i.status==="aceptado"}">✓ Mantener</button><button class="no" data-st="descartado" aria-pressed="${i.status==="descartado"}">✕ Descartar</button></span></div>
+  </div>`;
+}
+function vIdentify(){
+  const pend=S.items.filter(i=>i.status==="sugerido").length;
+  const col=(k,title,chip)=>{const l=S.items.filter(i=>i.k===k);
+    return `<section class="col"><div class="col-h"><h3>${title}</h3><span class="chip ${chip}">${l.filter(i=>i.status==="aceptado").length} elegidos</span></div>
+    ${l.map(itemCard).join("")||`<p class="hint">Todavía no hay ninguno.</p>`}
+    <form class="add" data-add="${k}"><input type="text" id="add-${k}" placeholder="Añadir ${k==="ingreso"?"un ingreso":"un gasto"}…" aria-label="Nuevo ${k}">
+    <button class="btn small" type="button" data-addbtn="${k}">Añadir</button>
+    <select id="addsrc-${k}" aria-label="Casilla del Canvas">${BOXES.map(b=>`<option value="${b[0]}">${b[1]}</option>`).join("")}<option value="manual" selected>Otra / ninguna</option></select></form></section>`};
+  return `
+  <h2>Identificad ingresos y gastos</h2>
+  <p class="hint">Estos elementos salen de vuestro Canvas. Mantened los que encajen, descartad los que no, cambiadles el nombre y añadid los que falten.</p>
+  ${pend?`<div class="row" style="margin-bottom:14px"><span class="note warn" style="flex:1">${pend} ${pend===1?"sugerencia pendiente":"sugerencias pendientes"} de revisar.</span><button class="btn small" data-act="acceptall">Mantener todas</button></div>`:""}
+  <div class="cols">${col("ingreso","Ingresos","in")}${col("gasto","Gastos","out")}</div>
+  <div class="actions">
+    <button class="btn primary" data-go="2" ${canGo(2)&&canGo(3)?"":"disabled"}>Cuantificar ↗</button>
+    <div class="row"><button class="link" data-go="0">← Volver al Canvas</button><button class="link" data-act="resuggest">Volver a sugerir desde el Canvas</button></div>
+  </div>`;
+}
+
+function totalsBar(){const M=model();const res=M.y1.rev-M.y1.cost;
+  return `<div class="kpi"><span>Ingresos año 1</span><b>${eur(M.y1.rev)}</b></div>
+  <div class="kpi"><span>Gastos año 1</span><b>${eur(M.y1.cost)}</b></div>
+  <div class="kpi"><span>Resultado año 1</span><b class="${res<0?"neg":"pos"}">${eur(res)}</b></div>
+  <div class="kpi"><span>Inversión inicial</span><b>${eur(M.inicial)}</b></div>`}
+function f(id,key,label,val,step,extra){return `<label>${label}<input type="number" inputmode="decimal" id="q-${id}-${key}" data-q="${id}" data-k="${key}" value="${esc(val)}" step="${step||"any"}" ${extra||""}></label>`}
+function yrsHTML(){const M=model();return M.years.map((y,i)=>`<div><span>Ingresos año ${i+1}</span><b>${eur(y.rev)}</b></div>`).join("")}
+function vQuantify(){
+  const inc=active("ingreso"),gas=active("gasto");
+  const y1=i=>{let t=0;for(let m=1;m<=12;m++)t+=revenueAt(i,m);return t};
+  return `
+  <h2>Cuantificad</h2>
+  <p class="hint">Poned cifras a cada elemento. Los valores que veis son orientativos: ajustadlos con vuestras estimaciones. Calculamos mes a mes durante 3 años.</p>
+  <div class="totals" id="totals">${totalsBar()}</div>
+  <h3>Ingresos</h3>
+  <div class="list">${inc.map(i=>`<div class="q-item"><div class="head"><strong>${esc(i.n)}</strong><span class="chip in">Año 1: <span class="yr" id="y1-${i.id}">${eur(y1(i))}</span></span></div>
+    <div class="fields">${f(i.id,"precio","Precio por unidad (€)",i.q.precio,"0.01","min=0")}${f(i.id,"unidades","Unidades al mes",i.q.unidades,"1","min=0")}${f(i.id,"crec","Crecimiento mensual año 1 (%)",i.q.crec,"0.5")}${f(i.id,"inicio","Empieza el mes",i.q.inicio,"1","min=1 max=36")}</div></div>`).join("")||`<p class="note warn">No habéis elegido ningún ingreso. Volved al paso anterior para añadir uno.</p>`}</div>
+  <div class="growth" id="growth">
+    <h3>Previsión de crecimiento de los ingresos</h3>
+    <p class="hint" style="margin:0">¿Cuánto creéis que crecerán vuestros ingresos el segundo y el tercer año? Pensad en nuevos clientes, más ventas por cliente o subidas de precio.</p>
+    <div class="fields">
+      <label>Año 2 respecto al año 1 (%)<input type="number" id="p-g2" data-p="g2" value="${S.params.g2}" step="1"></label>
+      <label>Año 3 respecto al año 2 (%)<input type="number" id="p-g3" data-p="g3" value="${S.params.g3}" step="1"></label>
+      <label>Subida anual de gastos fijos (%)<input type="number" id="p-gf" data-p="gf" value="${S.params.gf}" step="0.5"></label>
+    </div>
+    <div class="yrs" id="yrs">${yrsHTML()}</div>
+  </div>
+  <h3 style="margin-top:22px">Gastos</h3>
+  <div class="list">${gas.map(g=>`<div class="q-item"><div class="head"><strong>${esc(g.n)}</strong><span class="chip out">${g.q.tipo==="inicial"?"Una sola vez":g.q.tipo==="fijo"?"Cada mes":"% de ventas"}</span></div>
+    <div class="fields"><label>Tipo de gasto<select id="t-${g.id}" data-tipo="${g.id}">
+      <option value="inicial" ${g.q.tipo==="inicial"?"selected":""}>Inversión inicial (una vez)</option>
+      <option value="fijo" ${g.q.tipo==="fijo"?"selected":""}>Fijo mensual</option>
+      <option value="variable" ${g.q.tipo==="variable"?"selected":""}>Variable (% sobre ventas)</option></select></label>
+      ${g.q.tipo==="variable"?f(g.id,"pct","% sobre ventas",g.q.pct??5,"0.5","min=0 max=100"):f(g.id,"importe",g.q.tipo==="inicial"?"Importe (€)":"Importe al mes (€)",g.q.importe??0,"10","min=0")}</div></div>`).join("")}</div>
+  <div class="actions">
+    <button class="btn primary" data-go="3" ${canGo(3)?"":"disabled"}>Calcular la inversión ↗</button>
+    <div class="row"><button class="link" data-go="1">← Volver a identificar</button></div>
+  </div>`;
+}
+
+function chart(M){
+  const W=640,H=230,pl=64,pr=30,pt=16,pb=30;
+  const pts=[{m:0,cum:-M.inicial},...M.months.map(o=>({m:o.m,cum:o.cum-M.inicial}))];
+  let lo=Math.min(0,...pts.map(p=>p.cum)),hi=Math.max(0,...pts.map(p=>p.cum));
+  if(hi-lo<1)hi=lo+1;const pad=(hi-lo)*.08;lo-=pad;hi+=pad;
+  const N=M.months.length;const x=m=>pl+(W-pl-pr)*m/N;const y=v=>pt+(H-pt-pb)*(hi-v)/(hi-lo);
+  const step=nice((hi-lo)/5);const ticks=[];for(let t=Math.ceil(lo/step)*step;t<=hi;t+=step)ticks.push(t);
+  const line=pts.map((p,i)=>(i?"L":"M")+x(p.m).toFixed(1)+" "+y(p.cum).toFixed(1)).join(" ");
+  const area=line+` L${x(N).toFixed(1)} ${y(0).toFixed(1)} L${x(0).toFixed(1)} ${y(0).toFixed(1)} Z`;
+  const minP=pts.reduce((a,p)=>p.cum<a.cum?p:a,pts[0]);
+  const xt=[];for(let m=0;m<=N;m+=N>24?6:3)xt.push(m);
+  const k=v=>Math.abs(v)>=1000?(Math.round(v/100)/10).toLocaleString("es-ES")+" k€":Math.round(v)+" €";
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Caja acumulada mes a mes, incluida la inversión inicial">
+    ${ticks.map(t=>`<line x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-8}" y="${y(t)+4}" text-anchor="end">${k(t)}</text>`).join("")}
+    <path d="${area}" fill="var(--lime)" fill-opacity=".55"/>
+    <line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--ink)" stroke-width="1.2"/>
+    <path d="${line}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+    ${xt.map(m=>`<text x="${x(m)}" y="${H-8}" text-anchor="middle">${m===0?"Inicio":"Mes "+m}</text>`).join("")}
+    <circle cx="${x(minP.m)}" cy="${y(minP.cum)}" r="5" fill="var(--ink)"/>
+    <text x="${Math.min(x(minP.m)+8,W-150)}" y="${Math.min(y(minP.cum)+18,H-pb-4)}" style="fill:var(--ink);font-weight:700">Punto más bajo: ${k(minP.cum)}</text>
+  </svg>`;
+}
+function nice(v){const p=Math.pow(10,Math.floor(Math.log10(v||1)));const r=v/p;return (r<=1?1:r<=2?2:r<=2.5?2.5:r<=5?5:10)*p}
+function vInvest(){
+  const M=model();const rec=M.months.find(o=>o.cum-M.inicial>=0);
+  return `
+  <h2>Necesidad de inversión</h2>
+  <p class="hint">Es el dinero que necesitáis tener antes de que el negocio se pague solo: lo que compráis al principio, las pérdidas de los primeros meses y un margen de seguridad.</p>
+  <div class="need"><span>Necesitáis financiar</span><b id="need">${eur(M.need)}</b></div>
+  <div class="breakdown">
+    <div><span>Inversión inicial<small>Gastos de una sola vez antes de empezar</small></span><b>${eur(M.inicial)}</b></div>
+    <div><span>Pérdidas acumuladas de arranque<small>${M.deficit>0?`El peor momento llega en el mes ${M.minAt}`:"Desde el primer mes ingresáis más de lo que gastáis"}</small></span><b>${eur(M.deficit)}</b></div>
+    <div><span>Colchón de seguridad<small>${S.params.colchon} ${S.params.colchon===1?"mes":"meses"} de gastos fijos (${eur(M.fijo)}/mes)</small></span><b>${eur(M.colchon)}</b></div>
+    <div class="tot"><span>Total</span><b>${eur(M.need)}</b></div>
+  </div>
+  ${M.be?`<p class="note good">Punto de equilibrio en el <b>mes ${M.be}</b>: a partir de aquí cada mes ingresáis más de lo que gastáis.${rec?` Recuperáis la inversión inicial en el mes ${rec.m}.`:` En ${S.params.meses} meses aún no habéis recuperado la inversión inicial.`}</p>`
+   :`<p class="note bad">En ${S.params.meses} meses no llegáis al punto de equilibrio. Revisad precios, volumen o gastos antes de buscar financiación.</p>`}
+  <h3 style="margin-top:18px">Caja acumulada mes a mes</h3>
+  <div class="chart">${chart(M)}</div>
+  <div class="controls">
+    <div><label class="lbl" for="p-colchon">Colchón de seguridad: <span id="p-colchon-v">${S.params.colchon} meses</span></label><input type="range" id="p-colchon" data-p="colchon" min="0" max="6" step="1" value="${S.params.colchon}"></div>
+  </div>
+  <label class="check" for="rev"><input type="checkbox" id="rev" ${S.reviewed?"checked":""}><span>Hemos revisado las cifras y estamos de acuerdo con esta necesidad de inversión.</span></label>
+  <div class="actions">
+    <button class="btn primary" data-go="4" ${canGo(4)?"":"disabled"}>Proponer financiación ↗</button>
+    <div class="row"><button class="link" data-go="2">← Ajustar las cifras</button></div>
+  </div>`;
+}
+
+function finStats(){const M=model();const N=S.finNeed;const l=S.fin.filter(f=>f.status!=="descartada");
+  let prop=0,aj=0,c=0;for(const f of l){const a=N*num(f.pct)/100;if(SOURCES[f.key].t==="propio")prop+=a;else{aj+=a;c+=cuota(a,f.rate,f.years)}}
+  const sum=l.reduce((a,f)=>a+num(f.pct),0);
+  const lastRes=M.last.reduce((a,o)=>a+o.res,0)/Math.max(1,M.last.length);
+  return {N,prop,aj,c,sum,lastRes,M}}
+function srcCard(f){const s=SOURCES[f.key];const a=S.finNeed*num(f.pct)/100;
+  return `<div class="src ${f.status==="validada"?"ok":f.status==="descartada"?"off":""}" data-fid="${f.id}">
+    <div class="head"><div><span class="chip ${s.t==="propio"?"eq":"debt"}">${s.t==="propio"?"Capital propio":"Financiación ajena"}</span> <strong>${s.n}</strong></div><span class="amt" id="amt-${f.id}">${eur(a)}</span></div>
+    <p>${s.d}</p>
+    <div class="fields">
+      <label>% de la inversión<input type="number" id="fp-${f.id}" data-fp="${f.id}" data-fk="pct" value="${f.pct}" min="0" max="100" step="1" ${f.status==="descartada"?"disabled":""}></label>
+      ${s.t==="ajeno"?`<label>Interés anual (%)<input type="number" id="fr-${f.id}" data-fp="${f.id}" data-fk="rate" value="${f.rate}" min="0" step="0.1" ${f.status==="descartada"?"disabled":""}></label>
+      <label>Plazo (años)<input type="number" id="fy-${f.id}" data-fp="${f.id}" data-fk="years" value="${f.years}" min="1" max="20" step="1" ${f.status==="descartada"?"disabled":""}></label>
+      <label>Cuota mensual<input type="text" id="fc-${f.id}" value="${eur(cuota(a,f.rate,f.years))}" readonly tabindex="-1"></label>`:""}
+    </div>
+    <div class="row" style="justify-content:space-between"><span class="hint" style="margin:0;font-size:13px">${f.status==="validada"?"Validada por el equipo":f.status==="descartada"?"Descartada":"Pendiente de validar"}</span>
+    <span class="seg"><button class="ok" data-fs="validada" aria-pressed="${f.status==="validada"}">✓ Validar</button><button class="no" data-fs="descartada" aria-pressed="${f.status==="descartada"}">✕ Descartar</button></span></div>
+  </div>`}
+function statsHTML(){const t=finStats();const pP=t.N?t.prop/t.N*100:0,pA=t.N?t.aj/t.N*100:0;
+  const msgs=[];
+  if(Math.abs(t.sum-100)>=0.5)msgs.push(`<div class="note warn">Las vías elegidas suman ${Math.round(t.sum)} %. Mirad el total al final de la lista.</div>`);
+  if(t.c>0&&t.lastRes<t.c)msgs.push(`<div class="note bad">La cuota mensual de los préstamos (${eur(t.c)}) supera el resultado medio de vuestro último año (${eur(t.lastRes)}). Pedid menos deuda o alargad el plazo.</div>`);
+  else if(t.c>0)msgs.push(`<div class="note good">Vuestro resultado medio del último año (${eur(t.lastRes)}/mes) cubre la cuota de los préstamos (${eur(t.c)}/mes).</div>`);
+  if(pA>70)msgs.push(`<div class="note warn">Más del 70 % es deuda. Los bancos suelen pedir que los socios aporten una parte importante.</div>`);
+  return `<div class="mix" aria-hidden="true"><i style="width:${Math.min(100,pP)}%;background:var(--equity)"></i><i style="width:${Math.min(100-Math.min(100,pP),pA)}%;background:var(--debt)"></i></div>
+  <div class="legend"><span><i class="sw" style="background:var(--equity)"></i>Capital propio <b>${eur(t.prop)}</b> (${Math.round(pP)} %)</span><span><i class="sw" style="background:var(--debt)"></i>Financiación ajena <b>${eur(t.aj)}</b> (${Math.round(pA)} %)</span><span>Cuotas: <b>${eur(t.c)}/mes</b></span></div>
+  <div class="list" style="margin-top:12px">${msgs.join("")}</div>`}
+function totalHTML(){const t=finStats();const tot=t.prop+t.aj;const diff=tot-t.N;const pct=Math.round(t.sum*10)/10;
+  const state=Math.abs(t.sum-100)<0.5?"ok":t.sum<100?"falta":"sobra";
+  const used=new Set(S.fin.filter(f=>f.status!=="descartada").map(f=>f.key));
+  const debt=["participativo","banco","micro"].filter(k=>!used.has(k));
+  const capShort=t.prop<t.N;
+  return `<div class="ftotal ${state}">
+    <div class="ftrow"><span>Capital propio</span><b>${eur(t.prop)}</b><b>${Math.round(t.prop/t.N*1000)/10} %</b></div>
+    <div class="ftrow"><span>Financiación ajena</span><b>${eur(t.aj)}</b><b>${Math.round(t.aj/t.N*1000)/10} %</b></div>
+    <div class="ftrow sum"><span>Total financiado</span><b>${eur(tot)}</b><b>${pct.toLocaleString("es-ES")} %</b></div>
+    <div class="ftrow"><span>Necesidad de inversión</span><b>${eur(t.N)}</b><b>100 %</b></div>
+    <div class="ftmsg">${state==="ok"?"✓ Cuadra: cubrís exactamente la necesidad de inversión."
+      :state==="falta"?`Os falta <b>${eur(-diff)}</b> (${(Math.round((100-t.sum)*10)/10).toLocaleString("es-ES")} %) para cubrir la inversión.`
+      :`Os pasáis <b>${eur(diff)}</b> (${(Math.round((t.sum-100)*10)/10).toLocaleString("es-ES")} %) por encima de la inversión.`}
+      ${state!=="ok"?` <button class="link" data-act="norm">Ajustar al 100 %</button>`:""}</div>
+  </div>
+  ${capShort?`<div class="note info">Si con las aportaciones de capital no llegáis, podéis recurrir a financiación ajena pensada para emprendedores: <b>préstamos participativos de ENISA</b>, <b>préstamos bancarios con líneas ICO</b> o <b>microcréditos</b>. Suelen pedir un plan de negocio y que los socios aporten una parte.
+  ${debt.length?`<div class="row" style="margin-top:8px">${debt.map(k=>`<button class="btn small" data-quick="${k}">+ ${SOURCES[k].n}</button>`).join("")}</div>`:""}</div>`:""}`}
+function cashflow(){const t=finStats(),M=t.M;
+  const loans=S.fin.filter(f=>f.status!=="descartada"&&SOURCES[f.key].t==="ajeno").map(f=>{const a=t.N*num(f.pct)/100;return {c:cuota(a,f.rate,f.years),n:Math.max(1,Math.round(num(f.years)*12))}});
+  let saldo=0,minSaldo=Infinity,minM=0;const Y=[0,1,2].map(()=>({deuda:0}));
+  M.months.forEach(o=>{const y=Math.ceil(o.m/12)-1;let d=0;loans.forEach(l=>{if(o.m<=l.n)d+=l.c});Y[y].deuda+=d;
+    saldo+=(o.m===1?t.prop+t.aj-M.inicial:0)+o.res-d;if(saldo<minSaldo){minSaldo=saldo;minM=o.m}});
+  let ini=0;const rows=M.years.map((y,i)=>{const op=y.rev-y.cost;const inv=i===0?-M.inicial:0;const capIn=i===0?t.prop:0;const debtIn=i===0?t.aj:0;
+    const net=op+inv+capIn+debtIn-Y[i].deuda;const r={ini,rev:y.rev,vr:-y.vr,fix:-y.fix,op,inv,capIn,debtIn,deuda:-Y[i].deuda,net,fin:ini+net};ini=r.fin;return r});
+  return {rows,minSaldo,minM}}
+function cfHTML(){const c=cashflow();const R=c.rows;
+  const line=(label,key,cls)=>`<tr class="${cls||""}"><td>${label}</td>${R.map(r=>`<td class="n ${r[key]<0?"neg":""}">${eur(r[key])}</td>`).join("")}</tr>`;
+  return `<div class="tbl cf"><table><thead><tr><th>Estado de flujos de caja</th><th class="n">Año 1</th><th class="n">Año 2</th><th class="n">Año 3</th></tr></thead><tbody>
+  ${line("Saldo inicial de caja","ini","muted")}
+  ${line("Cobros por ventas","rev")}${line("Pagos variables","vr")}${line("Pagos fijos","fix")}
+  ${line("Flujo de caja operativo","op","sub")}
+  ${line("Inversión inicial","inv")}
+  ${line("Aportaciones de capital","capIn")}${line("Préstamos recibidos","debtIn")}${line("Devolución de préstamos (cuotas)","deuda")}
+  ${line("Flujo de caja neto del año","net","sub")}
+  ${line("Saldo final de caja","fin","tot")}
+  </tbody></table></div>
+  ${c.minSaldo<0?`<div class="note bad">Con este plan os quedáis sin caja en el mes ${c.minM} (saldo de ${eur(c.minSaldo)}). Necesitáis más financiación o ajustar gastos.</div>`
+   :`<div class="note good">La caja no baja nunca de cero. El momento más justo es el mes ${c.minM}, con ${eur(c.minSaldo)}.</div>`}`}
+function vFinance(){
+  const used=new Set(S.fin.map(f=>f.key));const avail=Object.keys(SOURCES).filter(k=>!used.has(k));
+  return `
+  <h2>Vías de financiación</h2>
+  <p class="hint">Para cubrir <b>${eur(S.finNeed)}</b> os proponemos esta combinación. Revisad cada vía, cambiad los porcentajes y validad las que vayáis a usar.</p>
+  <div id="stats">${statsHTML()}</div>
+  <div class="list" style="margin-top:16px">${S.fin.map(srcCard).join("")}</div>
+  <div id="fintotal" class="list" style="margin-top:12px">${totalHTML()}</div>
+  ${avail.length?`<form class="add" data-addsrc style="margin-top:12px"><select id="newsrc" aria-label="Otra vía">${avail.map(k=>`<option value="${k}">${SOURCES[k].n} · ${SOURCES[k].t==="propio"?"capital":"ajena"}</option>`).join("")}</select><button class="btn small" type="button" data-addsrcbtn="1">Añadir vía</button></form>`:""}
+  <h3 style="margin-top:22px">Flujos de caja a 3 años</h3>
+  <p class="hint">Cómo se mueve el dinero con vuestra previsión de ingresos y el plan de financiación que habéis elegido.</p>
+  <div id="cf">${cfHTML()}</div>
+  <details><summary>¿Capital propio o financiación ajena?</summary>
+  <p><b>Capital propio</b>: dinero que entra como participación en la empresa (fundadores, familia, inversores) o ayudas que no se devuelven. No genera cuotas, pero con inversores externos cedéis parte de la propiedad.</p>
+  <p><b>Financiación ajena</b>: préstamos que hay que devolver con intereses. No cedéis propiedad, pero las cuotas salen de la caja cada mes.</p></details>
+  <div class="actions">
+    <button class="btn primary" data-go="5" ${canGo(5)?"":"disabled"}>Ver el resumen ↗</button>
+    <div class="row"><button class="link" data-go="3">← Volver a la inversión</button><button class="link" data-act="repropose">Volver a proponer</button></div>
+  </div>`;
+}
+
+function summaryText(){const t=finStats(),M=t.M;
+  const L=[];L.push("MODELO FINANCIERO · DREAM BIG CHALLENGE","");
+  L.push("Propuesta de valor: "+S.canvas.propuesta.trim(),"");
+  L.push("INGRESOS");active("ingreso").forEach(i=>L.push(`- ${i.n}: ${num(i.q.precio).toLocaleString("es-ES")} € x ${num(i.q.unidades).toLocaleString("es-ES")} uds/mes, +${i.q.crec} %/mes desde el mes ${i.q.inicio}`));
+  L.push("","GASTOS");active("gasto").forEach(g=>L.push(`- ${g.n}: ${g.q.tipo==="variable"?g.q.pct+" % de ventas":eur(g.q.importe)+(g.q.tipo==="fijo"?"/mes":" (inicial)")}`));
+  L.push("",`Ingresos año 1: ${eur(M.y1.rev)} · Gastos año 1: ${eur(M.y1.cost)}`);
+  L.push(`Punto de equilibrio: ${M.be?"mes "+M.be:"no se alcanza en "+S.params.meses+" meses"}`);
+  L.push(`NECESIDAD DE INVERSIÓN: ${eur(M.need)} (inicial ${eur(M.inicial)} + arranque ${eur(M.deficit)} + colchón ${eur(M.colchon)})`,"","FINANCIACIÓN");
+  S.fin.filter(f=>f.status==="validada").forEach(f=>{const s=SOURCES[f.key],a=t.N*f.pct/100;L.push(`- ${s.n} (${s.t==="propio"?"capital propio":"ajena"}): ${eur(a)} (${f.pct} %)${s.t==="ajeno"?` · ${f.rate} % a ${f.years} años · ${eur(cuota(a,f.rate,f.years))}/mes`:""}`)});
+  L.push("",`Capital propio ${eur(t.prop)} · Financiación ajena ${eur(t.aj)}`);
+  const c=cashflow();L.push("","FLUJOS DE CAJA (Año 1 / Año 2 / Año 3)");
+  [["Cobros por ventas","rev"],["Pagos variables","vr"],["Pagos fijos","fix"],["Flujo operativo","op"],["Inversión inicial","inv"],["Aportaciones de capital","capIn"],["Préstamos recibidos","debtIn"],["Devolución de préstamos","deuda"],["Flujo neto","net"],["Saldo final de caja","fin"]]
+    .forEach(([l,k])=>L.push(`${l}: ${c.rows.map(r=>eur(r[k])).join(" / ")}`));
+  L.push(`Crecimiento previsto de ingresos: año 2 +${S.params.g2} %, año 3 +${S.params.g3} %`);
+  return L.join("\n")}
+function vSummary(){const t=finStats(),M=t.M;
+  return `
+  <h2>Resumen del modelo financiero</h2>
+  <p class="hint">Este es vuestro plan. Copiadlo para la presentación al jurado.</p>
+  <div class="sum-grid">
+    <div class="card"><span>Ingresos año 1</span><b>${eur(M.y1.rev)}</b></div>
+    <div class="card"><span>Punto de equilibrio</span><b>${M.be?"Mes "+M.be:"No alcanzado"}</b></div>
+    <div class="card"><span>Necesidad de inversión</span><b>${eur(M.need)}</b></div>
+    <div class="card"><span>Capital propio / ajena</span><b>${Math.round(t.prop/t.N*100)} / ${Math.round(t.aj/t.N*100)} %</b></div>
+  </div>
+  <h3>Financiación validada</h3>
+  <div class="tbl"><table><thead><tr><th>Vía</th><th>Tipo</th><th class="n">Importe</th><th class="n">Cuota/mes</th></tr></thead><tbody>
+  ${S.fin.filter(f=>f.status==="validada").map(f=>{const s=SOURCES[f.key],a=t.N*f.pct/100;return `<tr><td>${s.n}</td><td>${s.t==="propio"?"Capital propio":"Ajena"}</td><td class="n">${eur(a)}</td><td class="n">${s.t==="ajeno"?eur(cuota(a,f.rate,f.years)):"–"}</td></tr>`}).join("")}
+  <tr><th>Total</th><th></th><th class="n">${eur(t.prop+t.aj)}</th><th class="n">${eur(t.c)}</th></tr></tbody></table></div>
+  <h3>Flujos de caja a 3 años</h3>
+  ${cfHTML()}
+  <h3 style="margin-top:16px">Ingresos y gastos</h3>
+  <div class="tbl"><table><tbody>
+  ${active("ingreso").map(i=>{let y=0;for(let m=1;m<=12;m++)y+=revenueAt(i,m);return `<tr><td><span class="chip in">Ingreso</span> ${esc(i.n)}</td><td class="n">${eur(y)} año 1</td></tr>`}).join("")}
+  ${active("gasto").map(g=>`<tr><td><span class="chip out">Gasto</span> ${esc(g.n)}</td><td class="n">${g.q.tipo==="variable"?g.q.pct+" % ventas":eur(g.q.importe)+(g.q.tipo==="fijo"?"/mes":" una vez")}</td></tr>`).join("")}
+  </tbody></table></div>
+  <label class="lbl" for="sumtxt">Texto para copiar</label>
+  <textarea id="sumtxt" class="copy" readonly>${esc(summaryText())}</textarea>
+  <div class="actions">
+    <button class="btn primary" data-act="copy" id="copybtn">Copiar el resumen</button>
+    <div class="row"><button class="link" data-go="4">← Volver a la financiación</button><button class="link" data-act="reset">Empezar un proyecto nuevo</button></div>
+  </div>`;
+}
+
+/* ---------- Events ---------- */
+let resetArmed=false;
+app.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.go!=null){go(+b.dataset.go);return}
+  const it=b.closest("[data-id]");
+  if(b.dataset.st&&it){const i=S.items.find(x=>x.id===it.dataset.id);i.status=i.status===b.dataset.st?"sugerido":b.dataset.st;if(i.s==="manual"&&i.status==="sugerido")i.status="aceptado";S.reviewed=false;save();render();return}
+  const fc=b.closest("[data-fid]");
+  if(b.dataset.fs&&fc){const f=S.fin.find(x=>x.id===fc.dataset.fid);f.status=f.status===b.dataset.fs?"propuesta":b.dataset.fs;save();render();return}
+  const a=b.dataset.act;
+  if(a==="example"){S=fresh(true);save();render()}
+  else if(a==="clear"){S=fresh(false);save();render()}
+  else if(a==="acceptall"){S.items.forEach(i=>{if(i.status==="sugerido")i.status="aceptado"});save();render()}
+  else if(a==="resuggest"){suggest();save();render()}
+  else if(a==="repropose"){propose(model());save();render()}
+  else if(a==="norm"){const l=S.fin.filter(f=>f.status!=="descartada");const s=l.reduce((x,f)=>x+num(f.pct),0)||1;
+    let acc=0;l.forEach((f,i)=>{f.pct=i===l.length-1?100-acc:Math.round(num(f.pct)/s*100);acc+=f.pct;f.status=f.status==="validada"?"propuesta":f.status});save();render()}
+  else if(a==="copy"){const ta=document.getElementById("sumtxt");const done=()=>{b.textContent="Copiado ✓";setTimeout(()=>b.textContent="Copiar el resumen",1800)};
+    try{navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();b.textContent="Texto seleccionado: pulsad Ctrl+C"})}catch(err){ta.select();b.textContent="Texto seleccionado: pulsad Ctrl+C"}}
+  else if(a==="reset"){if(!resetArmed){resetArmed=true;b.textContent="Pulsad otra vez para borrarlo todo";setTimeout(()=>{resetArmed=false;if(b.isConnected)b.textContent="Empezar un proyecto nuevo"},3000)}else{resetArmed=false;S=fresh(false);save();render()}}
+});
+document.getElementById("steps").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)go(+b.dataset.go)});
+function addItem(k){const inp=document.getElementById("add-"+k);const n=inp.value.trim();if(!n){inp.focus();return}
+  const src=document.getElementById("addsrc-"+k).value;
+  S.items.push({id:nid("i"),k,n,s:src,user:true,status:"aceptado",q:k==="ingreso"?{precio:10,unidades:50,crec:5,inicio:1}:{tipo:"fijo",importe:100}});
+  S.reviewed=false;save();render();document.getElementById("add-"+k)?.focus()}
+function addSource(k){const key=k||document.getElementById("newsrc").value;const s=SOURCES[key];
+  S.fin.push({id:nid("f"),key,pct:0,status:"propuesta",rate:s.rate||0,years:s.years||0});save();render()}
+/* Forms may not submit inside a sandboxed frame, so buttons and Enter are handled directly. */
+app.addEventListener("submit",e=>e.preventDefault());
+app.addEventListener("click",e=>{const b=e.target.closest("[data-addbtn],[data-addsrcbtn],[data-quick]");if(!b)return;
+  if(b.dataset.addbtn)addItem(b.dataset.addbtn);else if(b.dataset.quick){const t=finStats();const ex=S.fin.find(f=>f.key===b.dataset.quick);
+    const gap=Math.max(0,Math.round(100-t.sum));if(ex){ex.status="propuesta";ex.pct=gap||ex.pct;save();render()}else{addSource(b.dataset.quick);S.fin[S.fin.length-1].pct=gap;save();render()}}
+  else addSource()});
+app.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const t=e.target;
+  if(t.id&&t.id.startsWith("add-")){e.preventDefault();addItem(t.id.slice(4))}});
+app.addEventListener("input",e=>{const t=e.target;
+  if(t.dataset.cv){S.canvas[t.dataset.cv]=t.value;S.example=false;t.closest(".box").classList.toggle("filled",!!t.value.trim());
+    const miss=BOXES.filter(([k])=>!S.canvas[k].trim()).map(b=>b[1]);const m=document.getElementById("cv-missing");
+    m.hidden=!miss.length;m.className="note warn";m.textContent="Falta completar: "+miss.join(", ")+".";
+    document.getElementById("cv-next").disabled=!!miss.length;S.reviewed=false;save();renderSteps();return}
+  if(t.dataset.name){const i=S.items.find(x=>x.id===t.dataset.name);i.n=t.value;save();return}
+  if(t.dataset.q){const i=S.items.find(x=>x.id===t.dataset.q);i.q[t.dataset.k]=num(t.value);S.reviewed=false;save();
+    document.getElementById("totals").innerHTML=totalsBar();
+    if(i.k==="ingreso"){let y=0;for(let m=1;m<=12;m++)y+=revenueAt(i,m);document.getElementById("y1-"+i.id).textContent=eur(y)}
+    renderSteps();return}
+  if(["g2","g3","gf"].includes(t.dataset.p)){S.params[t.dataset.p]=num(t.value);S.reviewed=false;save();
+    document.getElementById("totals").innerHTML=totalsBar();document.getElementById("yrs").innerHTML=yrsHTML();renderSteps();return}
+  if(t.dataset.p==="colchon"){S.params.colchon=+t.value;S.reviewed=false;save();render();document.getElementById("p-colchon").focus();return}
+  if(t.dataset.fp){const f=S.fin.find(x=>x.id===t.dataset.fp);f[t.dataset.fk]=num(t.value);if(f.status==="validada")f.status="propuesta";save();
+    const card=t.closest(".src");card.classList.remove("ok");card.querySelector(".hint").textContent="Pendiente de validar";card.querySelector('[data-fs="validada"]').setAttribute("aria-pressed","false");
+    const a=S.finNeed*num(f.pct)/100;document.getElementById("amt-"+f.id).textContent=eur(a);
+    const fcEl=document.getElementById("fc-"+f.id);if(fcEl)fcEl.value=eur(cuota(a,f.rate,f.years));
+    document.getElementById("stats").innerHTML=statsHTML();document.getElementById("fintotal").innerHTML=totalHTML();document.getElementById("cf").innerHTML=cfHTML();
+    const nb=app.querySelector('[data-go="5"].primary');if(nb)nb.disabled=!canGo(5);renderSteps();return}
+});
+app.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset.tipo){const g=S.items.find(x=>x.id===t.dataset.tipo);g.q.tipo=t.value;if(t.value==="variable"&&g.q.pct==null)g.q.pct=5;if(t.value!=="variable"&&g.q.importe==null)g.q.importe=100;S.reviewed=false;save();render();document.getElementById("t-"+g.id)?.focus();return}
+  if(t.dataset.p==="meses"){S.params.meses=+t.value;S.reviewed=false;save();render();return}
+  if(t.id==="rev"){S.reviewed=t.checked;save();render();return}
+});
+
+/* Restore a valid step after reload */
+if(!canGo(S.step))S.step=0;
+render();
+})();
+</script>
+
+</body>
+</html>
